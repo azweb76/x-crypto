@@ -2,9 +2,9 @@ from setuptools import setup
 
 setup(
     name="xcrypto",
-    version="1.0.1",
+    version="1.0.2",
     install_requires=[
-        'PyCrypto', 'PyYAML',
+        'PyCrypto',
     ],
     author = "Dan Clayton",
     author_email = "dan@azwebmaster.com",

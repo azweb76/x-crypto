@@ -46,6 +46,7 @@ def main():
         parser_a = subparsers.add_parser('encrypt', help='encrypt text')
         parser_a.add_argument('text', help='text to encrypt')
         parser_a.add_argument('-k', '--key', help='path to public key or use XCRYPTO_KEY env')
+        parser_a.add_argument('-w', '--width', default=60, type=int, help='encrypt text delimited by newlines')
         parser_a.set_defaults(func=encrypt_cli)
 
         parser_a = subparsers.add_parser('decrypt', help='decrypt text')
@@ -79,6 +80,14 @@ def get_key(key_path):
     else:
         key = _keys[key_path]
     return key
+
+
+def split2len(s, n):
+    def _f(s, n):
+        while s:
+            yield s[:n]
+            s = s[n:]
+    return list(_f(s, n))
 
 
 def rsa_encrypt(decrypted, key_path):
@@ -151,13 +160,18 @@ def decrypt(encrypted, private_key=None):
 def encrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    print encrypt(args.text, args.key or DEFAULT_KEY_PATH)
+    enc_str = encrypt(args.text, args.key or DEFAULT_KEY_PATH)
+    if args.width > 0:
+        print '\n'.join(split2len(enc_str, args.width))
+    else:
+        print enc_str
 
 
 def decrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    print decrypt(args.text, args.key or DEFAULT_KEY_PATH)
+    enc_str = ''.join(args.text.split('\n'))
+    print decrypt(enc_str, args.key or DEFAULT_KEY_PATH)
 
 
 if __name__ == '__main__':
