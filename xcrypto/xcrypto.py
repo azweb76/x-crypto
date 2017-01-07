@@ -107,7 +107,7 @@ def rsa_decrypt(encrypted, key_path):
     return decrypted
 
 
-def encrypt(message, public_key=None):
+def encrypt(message, public_key=None, width=60):
     """
     Encrypt a string using Asymmetric and Symmetric encryption.
 
@@ -130,7 +130,12 @@ def encrypt(message, public_key=None):
 
     token = rsa_encrypt(key+iv, public_key)
 
-    return base64.b64encode(data + token)
+    enc_str = base64.b64encode(data + token)
+
+    if width > 0:
+        print '\n'.join(split2len(enc_str, width))
+    else:
+        print enc_str
 
 
 def decrypt(encrypted, private_key=None):
@@ -141,8 +146,7 @@ def decrypt(encrypted, private_key=None):
     :param private_key: private key to use in decryption
     :return: decrypted string
     """
-    if encrypted == '-':
-        encrypted = sys.stdin.read()
+    encrypted = ''.join(encrypted.split('\n'))
 
     data = base64.b64decode(encrypted)
 
@@ -160,18 +164,13 @@ def decrypt(encrypted, private_key=None):
 def encrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    enc_str = encrypt(args.text, args.key or DEFAULT_KEY_PATH)
-    if args.width > 0:
-        print '\n'.join(split2len(enc_str, args.width))
-    else:
-        print enc_str
+    print encrypt(args.text, args.key or DEFAULT_KEY_PATH)
 
 
 def decrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    enc_str = ''.join(args.text.split('\n'))
-    print decrypt(enc_str, args.key or DEFAULT_KEY_PATH)
+    print decrypt(args.text, args.key or DEFAULT_KEY_PATH)
 
 
 if __name__ == '__main__':
