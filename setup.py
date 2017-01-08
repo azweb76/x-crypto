@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="xcrypto",
-    version="1.0.3",
+    version="1.0.4",
     install_requires=[
         'PyCrypto',
     ],

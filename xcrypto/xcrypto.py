@@ -111,6 +111,7 @@ def encrypt(message, public_key=None, width=60):
     """
     Encrypt a string using Asymmetric and Symmetric encryption.
 
+    :param width:
     :param message: message to encrypt
     :param public_key: public key to use in encryption
     :return: encrypted string
@@ -133,9 +134,9 @@ def encrypt(message, public_key=None, width=60):
     enc_str = base64.b64encode(data + token)
 
     if width > 0:
-        print '\n'.join(split2len(enc_str, width))
+        return '\n'.join(split2len(enc_str, width))
     else:
-        print enc_str
+        return enc_str
 
 
 def decrypt(encrypted, private_key=None):
