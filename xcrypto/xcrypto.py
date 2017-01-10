@@ -165,7 +165,7 @@ def decrypt(encrypted, private_key=None):
 def encrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    print encrypt(args.text, args.key or DEFAULT_KEY_PATH)
+    print encrypt(args.text, args.key or DEFAULT_KEY_PATH, args.width)
 
 
 def decrypt_cli(args):
