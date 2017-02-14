@@ -208,11 +208,15 @@ def edit_cli(args):
                     with open(tmp_file, 'r') as fhd:
                         decrypted_new = fhd.read()
                 
+                if decrypted_new == '':
+                    exit()
+
                 if args.validate == 'json':
                     json.loads(decrypted_new)
                 break
             except KeyboardInterrupt:
                 exit()
+
             except Exception as ex:
                 tries += 1
                 if tries >= 5:
