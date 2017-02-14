@@ -8,7 +8,6 @@ import os
 import platform
 import readline
 import sys
-import multiprocessing
 
 import requests
 
@@ -71,7 +70,7 @@ def get_key(key_path):
     global _keys
     if 'XCRYPTO_KEY' in os.environ:
         key_path = os.environ['XCRYPTO_KEY']
-    cache_key = '%s-%s' % (key_path, multiprocessing.current_process().name)
+    cache_key = key_path
     if cache_key not in _keys:
         if key_path.startswith('http'):
             resp = requests.get(key_path, verify=False)
@@ -82,6 +81,10 @@ def get_key(key_path):
     else:
         key = _keys[cache_key]
     return key
+
+
+def new_thread():
+    Random.atfork()
 
 
 def split2len(s, n):
