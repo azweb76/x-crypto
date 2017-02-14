@@ -8,6 +8,7 @@ import os
 import platform
 import readline
 import sys
+import tempfile
 
 import requests
 
@@ -53,6 +54,11 @@ def main():
         parser_a.add_argument('text', help='text to decrypt')
         parser_a.add_argument('-k', '--key', help='path to private key or use XCRYPTO_KEY')
         parser_a.set_defaults(func=decrypt_cli)
+
+        parser_a = subparsers.add_parser('edit', help='edit encrypted file')
+        parser_a.add_argument('file', help='file to edit')
+        parser_a.add_argument('-k', '--key', help='path to private key or use XCRYPTO_KEY')
+        parser_a.set_defaults(func=edit_cli)
 
         args = parser.parse_args()
         args.func(args)
@@ -178,6 +184,26 @@ def decrypt_cli(args):
         args.text = sys.stdin.read()
     print decrypt(args.text, args.key or DEFAULT_KEY_PATH)
 
+def edit_cli(args):
+    with open(args.file, 'r') as fhd:
+        decrypted = decrypt(fhd.read(), args.key or DEFAULT_KEY_PATH)
+
+    tmp_file = tempfile.mkstemp()[1]
+    with open(tmp_file, 'w') as fhd:
+        fhd.write(decrypted)
+
+    try:
+        os.system('vi %s' % tmp_file)
+        with open(tmp_file, 'r') as fhd:
+            decrypted_new = fhd.read()
+        if decrypted_new != decrypted:
+            with open(args.file, 'w') as fhd:
+                fhd.write(encrypt(decrypted_new, args.key or DEFAULT_KEY_PATH))
+            print 'Updated %s' % args.file
+        else:
+            print 'No changes'
+    finally:
+        os.unlink(tmp_file)
 
 if __name__ == '__main__':
     main()
