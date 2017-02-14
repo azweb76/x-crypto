@@ -185,17 +185,22 @@ def decrypt_cli(args):
     print decrypt(args.text, args.key or DEFAULT_KEY_PATH)
 
 def edit_cli(args):
-    with open(args.file, 'r') as fhd:
-        decrypted = decrypt(fhd.read(), args.key or DEFAULT_KEY_PATH)
-
-    tmp_file = tempfile.mkstemp()[1]
-    with open(tmp_file, 'w') as fhd:
-        fhd.write(decrypted)
-
     try:
+        decrypted = None
+        tmp_file = tempfile.mkstemp()[1]
+        if os.path.exists(args.file):
+            with open(args.file, 'r') as fhd:
+                decrypted = decrypt(fhd.read(), args.key or DEFAULT_KEY_PATH)
+
+            with open(tmp_file, 'w') as fhd:
+                fhd.write(decrypted)
+
         os.system('vi %s' % tmp_file)
-        with open(tmp_file, 'r') as fhd:
-            decrypted_new = fhd.read()
+
+        decrypted_new = None
+        if os.path.exists(tmp_file):
+            with open(tmp_file, 'r') as fhd:
+                decrypted_new = fhd.read()
         if decrypted_new != decrypted:
             with open(args.file, 'w') as fhd:
                 fhd.write(encrypt(decrypted_new, args.key or DEFAULT_KEY_PATH))
