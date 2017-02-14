@@ -8,6 +8,7 @@ import os
 import platform
 import readline
 import sys
+import multiprocessing
 
 import requests
 
@@ -70,15 +71,16 @@ def get_key(key_path):
     global _keys
     if 'XCRYPTO_KEY' in os.environ:
         key_path = os.environ['XCRYPTO_KEY']
-    if key_path not in _keys:
+    cache_key = '%s-%s' % (key_path, multiprocessing.current_process().name)
+    if cache_key not in _keys:
         if key_path.startswith('http'):
             resp = requests.get(key_path, verify=False)
-            key = _keys[key_path] = RSA.importKey(resp.text)
+            key = _keys[cache_key] = RSA.importKey(resp.text)
         else:
             with open(os.path.expanduser(key_path), 'r') as f:
-                key = _keys[key_path] = RSA.importKey(f.read())
+                key = _keys[cache_key] = RSA.importKey(f.read())
     else:
-        key = _keys[key_path]
+        key = _keys[cache_key]
     return key
 
 
