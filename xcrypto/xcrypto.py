@@ -9,6 +9,8 @@ import platform
 import readline
 import sys
 import tempfile
+import json
+import time
 
 import requests
 
@@ -57,6 +59,7 @@ def main():
 
         parser_a = subparsers.add_parser('edit', help='edit encrypted file')
         parser_a.add_argument('file', help='file to edit')
+        parser_a.add_argument('-v', '--validate', help='validate contents before saving')
         parser_a.add_argument('-k', '--key', help='path to private key or use XCRYPTO_KEY')
         parser_a.set_defaults(func=edit_cli)
 
@@ -195,12 +198,28 @@ def edit_cli(args):
             with open(tmp_file, 'w') as fhd:
                 fhd.write(decrypted)
 
-        os.system('vi %s' % tmp_file)
+        tries = 0
+        while True:
+            os.system('vi %s' % tmp_file)
 
-        decrypted_new = None
-        if os.path.exists(tmp_file):
-            with open(tmp_file, 'r') as fhd:
-                decrypted_new = fhd.read()
+            try:
+                decrypted_new = None
+                if os.path.exists(tmp_file):
+                    with open(tmp_file, 'r') as fhd:
+                        decrypted_new = fhd.read()
+                
+                if args.validate == 'json':
+                    json.loads(decrypted_new)
+                break
+            except KeyboardInterrupt:
+                exit()
+            except Exception as ex:
+                tries += 1
+                if tries >= 5:
+                    exit('failed validation')
+                print 'validation failed: %s, retrying...' % ex.message
+                time.sleep(3)
+                
         if decrypted_new != decrypted:
             with open(args.file, 'w') as fhd:
                 fhd.write(encrypt(decrypted_new, args.key or DEFAULT_KEY_PATH))
