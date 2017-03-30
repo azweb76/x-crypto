@@ -6,13 +6,15 @@ import base64
 import glob
 import os
 import platform
-import readline
 import sys
 import tempfile
 import json
 import time
+import logging
 
 import requests
+
+log = logging.getLogger(name=__name__)
 
 
 if platform.system() != 'Windows':
@@ -20,25 +22,6 @@ if platform.system() != 'Windows':
     from Crypto import Random
     from Crypto import Random
     from Crypto.Cipher import AES
-
-
-def complete(text, state):
-    if str(text).startswith('~/'):
-        home = os.path.expanduser('~/')
-        p = os.path.join(home, text[2:])
-    else:
-        p = text
-        home = None
-
-    items = glob.glob(p+'*')
-    if items is not None and home is not None:
-        items = ['~/' + x[len(home):] for x in items]
-    return (items+[None])[state]
-
-
-readline.set_completer_delims(' \t\n;')
-readline.parse_and_bind("tab: complete")
-readline.set_completer(complete)
 
 
 def main():
@@ -207,7 +190,7 @@ def edit_cli(args):
                 if os.path.exists(tmp_file):
                     with open(tmp_file, 'r') as fhd:
                         decrypted_new = fhd.read()
-                
+
                 if decrypted_new == '':
                     exit()
 
@@ -223,7 +206,7 @@ def edit_cli(args):
                     exit('failed validation')
                 print 'validation failed: %s, retrying...' % ex.message
                 time.sleep(3)
-                
+
         if decrypted_new != decrypted:
             with open(args.file, 'w') as fhd:
                 fhd.write(encrypt(decrypted_new, args.key or DEFAULT_KEY_PATH))
