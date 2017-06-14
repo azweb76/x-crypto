@@ -5,6 +5,7 @@ setup(
     version="1.0.7",
     install_requires=[
         'PyCrypto',
+        'requests',
     ],
     author = "Dan Clayton",
     author_email = "dan@azwebmaster.com",
