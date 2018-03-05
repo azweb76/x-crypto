@@ -162,13 +162,13 @@ def decrypt(encrypted, private_key=None):
 def encrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    print encrypt(args.text, args.key or DEFAULT_KEY_PATH, args.width)
+    sys.stdout.write(encrypt(args.text, args.key or DEFAULT_KEY_PATH, args.width))
 
 
 def decrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    print decrypt(args.text, args.key or DEFAULT_KEY_PATH)
+    sys.stdout.write(decrypt(args.text, args.key or DEFAULT_KEY_PATH))
 
 def edit_cli(args):
     try:
@@ -204,15 +204,15 @@ def edit_cli(args):
                 tries += 1
                 if tries >= 5:
                     exit('failed validation')
-                print 'validation failed: %s, retrying...' % ex.message
+                sys.stdout.write('validation failed: %s, retrying...' % ex.message)
                 time.sleep(3)
 
         if decrypted_new != decrypted:
             with open(args.file, 'w') as fhd:
                 fhd.write(encrypt(decrypted_new, args.key or DEFAULT_KEY_PATH))
-            print 'Updated %s' % args.file
+            sys.stdout.write('Updated %s' % args.file)
         else:
-            print 'No changes'
+            sys.stdout.write('No changes')
     finally:
         os.unlink(tmp_file)
 
