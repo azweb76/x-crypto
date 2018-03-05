@@ -128,7 +128,7 @@ def encrypt(message, public_key=None, width=60):
 
     token = rsa_encrypt(key+iv, public_key)
 
-    enc_str = str(base64.b64encode(data + token), 'utf-8')
+    enc_str = base64.b64encode(data + token).decode()
 
     if width > 0:
         x = split2len(enc_str, width)
@@ -157,7 +157,7 @@ def decrypt(encrypted, private_key=None):
 
     aes = AES.new(passphrase, AES.MODE_CBC, iv)
 
-    return str(aes.decrypt(payload).rstrip(b'\0'), 'utf-8')
+    return aes.decrypt(payload).rstrip(b'\0').decode()
 
 
 def encrypt_cli(args):
