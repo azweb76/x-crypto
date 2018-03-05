@@ -119,7 +119,7 @@ def encrypt(message, public_key=None, width=60):
     iv = Random.new().read(AES.block_size)
 
     def pad(s):
-        return s + b"\0" * (AES.block_size - len(s) % AES.block_size)
+        return s + '\0' * (AES.block_size - len(s) % AES.block_size)
 
     aes = AES.new(passphrase, AES.MODE_CBC, iv)
     if message == '-':
@@ -128,10 +128,11 @@ def encrypt(message, public_key=None, width=60):
 
     token = rsa_encrypt(key+iv, public_key)
 
-    enc_str = base64.b64encode(data + token)
+    enc_str = str(base64.b64encode(data + token), 'utf-8')
 
     if width > 0:
-        return '\n'.join(split2len(enc_str, width))
+        x = split2len(enc_str, width)
+        return '\n'.join(x)
     else:
         return enc_str
 
@@ -156,7 +157,7 @@ def decrypt(encrypted, private_key=None):
 
     aes = AES.new(passphrase, AES.MODE_CBC, iv)
 
-    return aes.decrypt(payload).rstrip(b"\0")
+    return str(aes.decrypt(payload).rstrip(b'\0'), 'utf-8')
 
 
 def encrypt_cli(args):
