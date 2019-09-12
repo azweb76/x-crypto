@@ -60,8 +60,8 @@ _keys = {}
 
 def get_key(key_path):
     global _keys
-    if 'XCRYPTO_KEY' in os.environ:
-        key_path = os.environ['XCRYPTO_KEY']
+    if key_path is None or len(key_path) == 0:
+        key_path = os.environ.get('XCRYPTO_KEY', DEFAULT_KEY_PATH)
     cache_key = key_path
     if cache_key not in _keys:
         if key_path.startswith('http'):
@@ -163,13 +163,13 @@ def decrypt(encrypted, private_key=None):
 def encrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    sys.stdout.write(encrypt(args.text, args.key or DEFAULT_KEY_PATH, args.width))
+    sys.stdout.write(encrypt(args.text, args.key, args.width))
 
 
 def decrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    sys.stdout.write(decrypt(args.text, args.key or DEFAULT_KEY_PATH))
+    sys.stdout.write(decrypt(args.text, args.key))
 
 def edit_cli(args):
     try:
@@ -177,7 +177,7 @@ def edit_cli(args):
         tmp_file = tempfile.mkstemp()[1]
         if os.path.exists(args.file):
             with open(args.file, 'r') as fhd:
-                decrypted = decrypt(fhd.read(), args.key or DEFAULT_KEY_PATH)
+                decrypted = decrypt(fhd.read(), args.key)
 
             with open(tmp_file, 'w') as fhd:
                 fhd.write(decrypted)
@@ -210,7 +210,7 @@ def edit_cli(args):
 
         if decrypted_new != decrypted:
             with open(args.file, 'w') as fhd:
-                fhd.write(encrypt(decrypted_new, args.key or DEFAULT_KEY_PATH))
+                fhd.write(encrypt(decrypted_new, args.key))
             sys.stdout.write('Updated %s' % args.file)
         else:
             sys.stdout.write('No changes')
