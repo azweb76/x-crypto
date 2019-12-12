@@ -11,6 +11,7 @@ import tempfile
 import json
 import time
 import logging
+from pymongo import MongoClient
 
 import requests
 
@@ -26,24 +27,54 @@ if platform.system() != 'Windows':
 
 def main():
     try:
-        parser = argparse.ArgumentParser(description='Encrypt or decrypt text based on RSA.')
+        parser = argparse.ArgumentParser(
+            description='Encrypt or decrypt text based on RSA.')
+
+        parser.add_argument(
+            '-m', '--mongo-url', default=os.environ.get('XCRYPTO_MONGO_URL', None),
+            help='mongo endpoint for key storage')
 
         subparsers = parser.add_subparsers(help='actions')
         parser_a = subparsers.add_parser('encrypt', help='encrypt text')
+        parser_a.add_argument('-n', '--name', default=None, help='name of secret')
         parser_a.add_argument('text', help='text to encrypt')
-        parser_a.add_argument('-k', '--key', help='path to public key or use XCRYPTO_KEY env')
-        parser_a.add_argument('-w', '--width', default=60, type=int, help='encrypt text delimited by newlines')
+        parser_a.add_argument(
+            '-k', '--key', help='path to public key or use XCRYPTO_KEY env')
+        parser_a.add_argument('-w', '--width', default=60,
+                              type=int, help='encrypt text delimited by newlines')
         parser_a.set_defaults(func=encrypt_cli)
 
         parser_a = subparsers.add_parser('decrypt', help='decrypt text')
         parser_a.add_argument('text', help='text to decrypt')
-        parser_a.add_argument('-k', '--key', help='path to private key or use XCRYPTO_KEY')
+        parser_a.add_argument(
+            '-k', '--key', help='path to private key or use XCRYPTO_KEY')
         parser_a.set_defaults(func=decrypt_cli)
+
+        parser_a = subparsers.add_parser('get', help='get a remote secret')
+        parser_a.add_argument('name', help='name of secret')
+        parser_a.add_argument('-w', '--width', default=60,
+                              type=int, help='encrypt text delimited by newlines')
+        parser_a.add_argument(
+            '-k', '--key', help='path to private key or use XCRYPTO_KEY')
+        parser_a.set_defaults(func=get_cli)
+
+        parser_a = subparsers.add_parser('save', help='save a remote secret')
+        parser_a.add_argument('text', default='-', help='text to encrypt')
+        parser_a.add_argument('-n', '--name', help='name of secret')
+        parser_a.add_argument(
+            '-k', '--key', help='path to private key or use XCRYPTO_KEY')
+        parser_a.set_defaults(func=save_cli)
+
+        parser_a = subparsers.add_parser('delete', help='save a remote secret')
+        parser_a.add_argument('name', help='name of secret')
+        parser_a.set_defaults(func=delete_cli)
 
         parser_a = subparsers.add_parser('edit', help='edit encrypted file')
         parser_a.add_argument('file', help='file to edit')
-        parser_a.add_argument('-v', '--validate', help='validate contents before saving')
-        parser_a.add_argument('-k', '--key', help='path to private key or use XCRYPTO_KEY')
+        parser_a.add_argument('-v', '--validate',
+                              help='validate contents before saving')
+        parser_a.add_argument(
+            '-k', '--key', help='path to private key or use XCRYPTO_KEY')
         parser_a.set_defaults(func=edit_cli)
 
         args = parser.parse_args()
@@ -104,7 +135,70 @@ def rsa_decrypt(encrypted, key_path):
     return decrypted
 
 
-def encrypt(message, public_key=None, width=60):
+def read_value(message, opts):
+    if message == '-':
+        message = sys.stdin.read()
+    return message
+
+
+def delete_secret(secret_name, **kwargs):
+    if 'mongo_url' in kwargs:
+        client = MongoClient(kwargs['mongo_url'])
+        x = client.xcrypto
+        secrets = x.secrets
+
+        resp = secrets.delete_one({"name": secret_name})
+        return resp.deleted_count
+
+    else:
+        raise RuntimeError('not currently supported')
+
+
+def get_secret(secret_name, private_key, **kwargs):
+    if 'mongo_url' in kwargs:
+        client = MongoClient(kwargs['mongo_url'])
+        x = client.xcrypto
+        secrets = x.secrets
+
+        secret = secrets.find_one({"name": secret_name})
+        if secret is None:
+            raise RuntimeError('secret %s was not found' % secret_name)
+        enc_str = secret['content']
+
+        return decrypt(enc_str, private_key=private_key)
+
+    raise RuntimeError('not currently supported')
+
+
+def save_secret(secret_name, message, public_key=None, width=0, **kwargs):
+    enc_str = encrypt(message, public_key=public_key, width=width)
+
+    if 'mongo_url' in kwargs:
+        client = MongoClient(kwargs['mongo_url'])
+        x = client.xcrypto
+        secrets = x.secrets
+
+        secret = secrets.find_one({"name": secret_name})
+        if secret:
+            secrets.update_one({"name": secret_name}, {
+                '$set': {
+                    'content': enc_str
+                }
+            })
+            sys.stdout.write('secret %s updated' % secret_name)
+        else:
+            secrets.insert_one(
+                {
+                    "name": secret_name,
+                    "content": enc_str
+                })
+            sys.stdout.write('secret %s added' % secret_name)
+        
+        return True
+    return False
+
+
+def encrypt(message, public_key=None, width=60, **kwargs):
     """
     Encrypt a string using Asymmetric and Symmetric encryption.
 
@@ -122,11 +216,10 @@ def encrypt(message, public_key=None, width=60):
         return s + '\0' * (AES.block_size - len(s) % AES.block_size)
 
     aes = AES.new(passphrase, AES.MODE_CBC, iv)
-    if message == '-':
-        message = sys.stdin.read()
+    message = read_value(message, kwargs)
     data = aes.encrypt(pad(message))
 
-    token = rsa_encrypt(key+iv, public_key)
+    token = rsa_encrypt(key + iv, public_key)
 
     enc_str = base64.b64encode(data + token).decode()
 
@@ -137,7 +230,7 @@ def encrypt(message, public_key=None, width=60):
         return enc_str
 
 
-def decrypt(encrypted, private_key=None):
+def decrypt(encrypted, private_key=None, **kwargs):
     """
     Decrypt a string using Asymmetric and Symmetric encryption.
 
@@ -163,13 +256,28 @@ def decrypt(encrypted, private_key=None):
 def encrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    sys.stdout.write(encrypt(args.text, args.key, args.width))
+    sys.stdout.write(encrypt(args.text, args.key, args.width, mongo_url=args.mongo_url))
+
+
+def save_cli(args):
+    if args.text is None or args.text == '-':
+        args.text = sys.stdin.read()
+    save_secret(args.name, args.text, args.key, mongo_url=args.mongo_url)
+
+
+def delete_cli(args):
+    sys.stdout.write(delete_secret(args.name, mongo_url=args.mongo_url))
+
+
+def get_cli(args):
+    sys.stdout.write(get_secret(args.name, args.key, mongo_url=args.mongo_url))
 
 
 def decrypt_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
     sys.stdout.write(decrypt(args.text, args.key))
+
 
 def edit_cli(args):
     try:
@@ -205,7 +313,8 @@ def edit_cli(args):
                 tries += 1
                 if tries >= 5:
                     exit('failed validation')
-                sys.stdout.write('validation failed: %s, retrying...' % ex.message)
+                sys.stdout.write(
+                    'validation failed: %s, retrying...' % ex.message)
                 time.sleep(3)
 
         if decrypted_new != decrypted:
@@ -216,6 +325,7 @@ def edit_cli(args):
             sys.stdout.write('No changes')
     finally:
         os.unlink(tmp_file)
+
 
 if __name__ == '__main__':
     main()
