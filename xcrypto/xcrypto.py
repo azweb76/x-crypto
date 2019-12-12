@@ -71,7 +71,7 @@ def main():
         parser_a.set_defaults(func=delete_cli)
 
         parser_a = subparsers.add_parser('ls', help='list remote secrets')
-        parser_a.add_argument('pattern', default='', help='name pattern of secret')
+        parser_a.add_argument('pattern', nargs='?', help='name pattern of secret')
         parser_a.set_defaults(func=ls_cli)
 
         parser_a = subparsers.add_parser('edit', help='edit encrypted file')
