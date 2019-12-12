@@ -6,6 +6,7 @@ import base64
 import glob
 import os
 import platform
+import re
 import sys
 import tempfile
 import json
@@ -68,6 +69,10 @@ def main():
         parser_a = subparsers.add_parser('delete', help='delete a remote secret')
         parser_a.add_argument('name', help='name of secret')
         parser_a.set_defaults(func=delete_cli)
+
+        parser_a = subparsers.add_parser('ls', help='list remote secrets')
+        parser_a.add_argument('pattern', default='', help='name pattern of secret')
+        parser_a.set_defaults(func=ls_cli)
 
         parser_a = subparsers.add_parser('edit', help='edit encrypted file')
         parser_a.add_argument('file', help='file to edit')
@@ -166,6 +171,22 @@ def get_secret(secret_name, private_key, **kwargs):
         enc_str = secret['content']
 
         return decrypt(enc_str, private_key=private_key)
+
+    raise RuntimeError('not currently supported')
+
+
+def get_secrets(name_pattern, **kwargs):
+    if 'mongo_url' in kwargs:
+        client = MongoClient(kwargs['mongo_url'])
+        x = client.xcrypto
+        secrets = x.secrets
+
+        if name_pattern:
+            name_regex = re.compile(name_pattern)
+            results = list(secrets.find({"name": name_regex}))
+        else:
+            results = list(secrets.find())
+        return results
 
     raise RuntimeError('not currently supported')
 
@@ -271,6 +292,12 @@ def save_cli(args):
 def delete_cli(args):
     delete_secret(args.name, mongo_url=args.mongo_url)
     sys.stdout.write('secret "%s" deleted' % args.name)
+
+
+def ls_cli(args):
+    secrets = get_secrets(args.pattern, mongo_url=args.mongo_url)
+    for secret in secrets:
+        sys.stdout.write(secret['name'] + '\n')
 
 
 def get_cli(args):
