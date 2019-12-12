@@ -65,7 +65,7 @@ def main():
             '-k', '--key', help='path to private key or use XCRYPTO_KEY')
         parser_a.set_defaults(func=save_cli)
 
-        parser_a = subparsers.add_parser('delete', help='save a remote secret')
+        parser_a = subparsers.add_parser('delete', help='delete a remote secret')
         parser_a.add_argument('name', help='name of secret')
         parser_a.set_defaults(func=delete_cli)
 
