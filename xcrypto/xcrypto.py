@@ -185,17 +185,19 @@ def save_secret(secret_name, message, public_key=None, width=0, **kwargs):
                     'content': enc_str
                 }
             })
-            sys.stdout.write('secret %s updated' % secret_name)
+            return {
+                'code': 'updated'
+            }
         else:
             secrets.insert_one(
                 {
                     "name": secret_name,
                     "content": enc_str
                 })
-            sys.stdout.write('secret %s added' % secret_name)
-        
-        return True
-    return False
+            return {
+                'code': 'added'
+            }
+    raise RuntimeError('unsupported')
 
 
 def encrypt(message, public_key=None, width=60, **kwargs):
@@ -262,11 +264,13 @@ def encrypt_cli(args):
 def save_cli(args):
     if args.text is None or args.text == '-':
         args.text = sys.stdin.read()
-    save_secret(args.name, args.text, args.key, mongo_url=args.mongo_url)
+    result = save_secret(args.name, args.text, args.key, mongo_url=args.mongo_url)
+    sys.stdout.write('secret "%s" %s' % (args.name, result['code']))
 
 
 def delete_cli(args):
-    sys.stdout.write(delete_secret(args.name, mongo_url=args.mongo_url))
+    delete_secret(args.name, mongo_url=args.mongo_url)
+    sys.stdout.write('secret "%s" deleted' % args.name)
 
 
 def get_cli(args):
