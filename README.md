@@ -5,7 +5,7 @@ Python-based tool used to encrypt/decrypt via the command-line or API using symm
 ```bash
 pip install git+https://github.com/azweb76/x-crypto [--upgrade]
 ```
-
+ 
 ## Usage (encrypt)
 To encrypt text.
 
