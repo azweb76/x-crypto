@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "xcrypto"
+version = "2.0.0"
+description = "Used to encrypt or decrypt based on an SSH RSA key pair."
+license = "MIT"
+keywords = ["encrypt", "decrypt"]
+homepage = "https://github.com/azweb76/x-crypto"
+authors = ["Dan Clayton <dan@azwebmaster.com>"]
+
+[tool.poetry.scripts]
+xcrypto = 'xcrypto.xcrypto:main'
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pymongo = "*"
+requests = "*"
+pycrypto = {git = "https://github.com/dclayton-godaddy/pycrypto"}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
